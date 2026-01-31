@@ -1,0 +1,18 @@
+
+@import "tailwindcss";
+
+
+:root {
+  --black: #0B0B0B;
+  --gold: #D4A857;
+  --white: #F5F5F5;
+  --silver: #C9C9C9;
+  --heading-font: 'Playfair Display', serif;
+  --body-font: 'Inter', sans-serif;
+}
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--body-font);
+}
