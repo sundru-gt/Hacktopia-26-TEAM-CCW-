@@ -6,6 +6,8 @@ const Signup = () => {
   const [role, setRole] = useState("student");
   const [resume, setResume] = useState(null);
   const [parsing, setParsing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const [studentData, setStudentData] = useState({
@@ -18,9 +20,10 @@ const Signup = () => {
   });
 
   const inputClass =
-    "w-full border border-gray-300 rounded-xl px-4 py-3 text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500";
+    "w-full border border-gray-300 rounded-xl px-4 py-3 text-black " +
+    "placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500";
 
-  // ================= RESUME PARSE =================
+  // ================= RESUME UPLOAD + PARSE =================
   const handleResumeUpload = async (file) => {
     if (!file) return;
 
@@ -59,11 +62,18 @@ const Signup = () => {
     setStudentData({ ...studentData, [e.target.name]: e.target.value });
   };
 
-  // ================= STUDENT SIGNUP =================
+  // ================= SIGNUP SUBMIT =================
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (role === "student") {
+    if (role !== "student") {
+      alert("TnP signup backend later");
+      navigate("/login");
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const res = await fetch("http://127.0.0.1:8000/student/signup", {
         method: "POST",
@@ -71,8 +81,15 @@ const Signup = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...studentData,
-          skills: studentData.skills.split(",").map(s => s.trim()),
+          name: studentData.name,
+          email: studentData.email,
+          branch: studentData.branch,
+          cgpa: studentData.cgpa,
+          skills: studentData.skills
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          password: studentData.password,
         }),
       });
 
@@ -83,36 +100,41 @@ const Signup = () => {
         return;
       }
 
-      alert("Account created successfully 🎉");
+      alert("✅ Account created successfully");
       navigate("/login");
-    } catch (err) {
-      console.error(err);
-      alert("Signup failed");
-    }
-  }
-};
 
+    } catch (err) {
+      alert("Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#020617] to-[#0f172a] px-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-6xl grid md:grid-cols-2 rounded-3xl overflow-hidden bg-white/10 backdrop-blur-xl"
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 rounded-3xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-2xl border border-white/10"
       >
         {/* LEFT */}
-        <div className="hidden md:flex flex-col justify-between p-10 text-white">
-          <h1 className="text-4xl font-extrabold">CampusHire</h1>
-          <p className="text-gray-300">
-            Resume driven placement platform
-          </p>
+        <div className="hidden md:flex flex-col justify-between p-10 bg-gradient-to-br from-indigo-500/20 to-cyan-500/10">
+          <div>
+            <h1 className="text-4xl font-extrabold text-white">
+              Join CampusHire
+            </h1>
+            <p className="mt-4 text-gray-300">
+              Resume-driven placement intelligence platform
+            </p>
+          </div>
         </div>
 
         {/* RIGHT */}
-        <div className="p-10 bg-white">
+        <div className="p-10 bg-white/90">
           <h2 className="text-3xl font-bold mb-6">Create Account</h2>
 
+          {/* ROLE TOGGLE */}
           <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
             {["student", "tnp"].map((r) => (
               <button
@@ -130,6 +152,7 @@ const Signup = () => {
             ))}
           </div>
 
+          {/* STUDENT SIGNUP */}
           {role === "student" && (
             <form className="space-y-4" onSubmit={handleSubmit}>
               {/* Resume */}
@@ -139,36 +162,30 @@ const Signup = () => {
                   accept=".pdf"
                   hidden
                   id="resume"
-                  onChange={(e) =>
-                    handleResumeUpload(e.target.files[0])
-                  }
+                  onChange={(e) => handleResumeUpload(e.target.files[0])}
                 />
-                <label
-                  htmlFor="resume"
-                  className="cursor-pointer text-cyan-600 font-semibold"
-                >
+                <label htmlFor="resume" className="cursor-pointer text-cyan-600">
                   Upload Resume (PDF)
                 </label>
-
                 {parsing && (
-                  <p className="text-sm mt-2 text-cyan-600">
-                    Parsing resume…
+                  <p className="text-sm text-cyan-600 mt-2">
+                    Parsing resume...
                   </p>
                 )}
               </div>
 
-              <input name="name" placeholder="Full Name" value={studentData.name} onChange={handleChange} className={inputClass} />
-              <input name="email" placeholder="Email" value={studentData.email} onChange={handleChange} className={inputClass} />
-              <input name="branch" placeholder="Branch" value={studentData.branch} onChange={handleChange} className={inputClass} />
-              <input name="cgpa" placeholder="CGPA" value={studentData.cgpa} onChange={handleChange} className={inputClass} />
-              <input name="skills" placeholder="Skills" value={studentData.skills} onChange={handleChange} className={inputClass} />
-              <input name="password" type="password" placeholder="Password" value={studentData.password} onChange={handleChange} className={inputClass} />
+              <input name="name" value={studentData.name} onChange={handleChange} placeholder="Full Name" className={inputClass} />
+              <input name="email" value={studentData.email} onChange={handleChange} placeholder="Email" className={inputClass} />
+              <input name="branch" value={studentData.branch} onChange={handleChange} placeholder="Branch" className={inputClass} />
+              <input name="cgpa" value={studentData.cgpa} onChange={handleChange} placeholder="CGPA" className={inputClass} />
+              <input name="skills" value={studentData.skills} onChange={handleChange} placeholder="Skills" className={inputClass} />
+              <input name="password" type="password" value={studentData.password} onChange={handleChange} placeholder="Password" className={inputClass} />
 
               <button
-                type="submit"
-                className="w-full bg-cyan-500 text-white py-3 rounded-xl font-bold"
+                disabled={loading}
+                className="w-full bg-cyan-500 py-3 rounded-xl font-bold text-white"
               >
-                Create Student Account
+                {loading ? "Creating Account..." : "Create Student Account"}
               </button>
             </form>
           )}

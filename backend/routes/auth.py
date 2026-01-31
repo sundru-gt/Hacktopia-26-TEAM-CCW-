@@ -1,23 +1,41 @@
 from fastapi import APIRouter
-from creek.backend.db.database import students_collection
-from models.student import create_student
+from pydantic import BaseModel
+from database import students_collection
+import hashlib
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
-@router.post("/signup/student")
-def student_signup(data: dict):
-    student = create_student(data)
-    students_collection.insert_one(student)
-    return {"message": "Student registered"}
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
 
 @router.post("/login")
-def login(data: dict):
-    user = students_collection.find_one({"email": data["email"]})
-    if user:
-        return {"role": "student", "id": str(user["_id"])}
+def login(data: LoginRequest):
 
-    tnp = tnp_collection.find_one({"email": data["email"]})
-    if tnp:
-        return {"role": "tnp", "id": str(tnp["_id"])}
+    student = students_collection.find_one({"email": data.email})
 
-    return {"error": "User not found"}
+    if not student:
+        return {"error": "User not found"}
+
+    hashed = hash_password(data.password)
+
+    if student["password"] != hashed:
+        return {"error": "Invalid password"}
+
+    # 🔥 LOGIN SUCCESS
+    return {
+        "role": "student",
+        "student": {
+            "id": str(student["_id"]),
+            "name": student["name"],
+            "email": student["email"],
+            "branch": student["branch"],
+            "cgpa": student["cgpa"],
+            "skills": student["skills"],
+        }
+    }
