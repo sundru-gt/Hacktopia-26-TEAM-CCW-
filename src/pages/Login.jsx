@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
+
 const Login = () => {
   const [role, setRole] = useState("student");
 
-  // ✅ MISSING STATES (VERY IMPORTANT)
+  // ✅ REQUIRED STATES
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -15,19 +16,25 @@ const Login = () => {
     "w-full border border-gray-300 rounded-xl px-4 py-3 text-black " +
     "placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500";
 
-  // 🔥 LOGIN HANDLER (BACKEND CONNECTED)
+  // 🔥 LOGIN HANDLER
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    // ✅ role based endpoint
+    const endpoint =
+      role === "student"
+        ? "http://127.0.0.1:8000/student/login"
+        : "http://127.0.0.1:8000/tnp/login";
+
     try {
-      const res = await fetch("http://127.0.0.1:8000/student/login", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email,
-          password: password,
+          email,
+          password,
         }),
       });
 
@@ -38,11 +45,16 @@ const Login = () => {
         return;
       }
 
-      // 🔐 store logged-in student
-      localStorage.setItem("student", JSON.stringify(data.student));
+      // ✅ store according to role
+      if (role === "student") {
+        localStorage.setItem("student", JSON.stringify(data.student));
+        navigate("/dashboard/student");
+      } else {
+        localStorage.setItem("tnp", JSON.stringify(data.tnp));
+        navigate("/dashboard/tnp");
+      }
 
       alert("Login successful ✅");
-      navigate("/dashboard/student");
 
     } catch (err) {
       alert("Login failed ❌");
@@ -98,7 +110,7 @@ const Login = () => {
           <form className="space-y-4" onSubmit={handleLogin}>
             <input
               type="email"
-              placeholder="Student Email"
+              placeholder="Email"
               className={inputClass}
               value={email}
               onChange={(e) => setEmail(e.target.value)}

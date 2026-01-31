@@ -10,6 +10,7 @@ const Signup = () => {
 
   const navigate = useNavigate();
 
+  /* ================= STUDENT STATE ================= */
   const [studentData, setStudentData] = useState({
     name: "",
     email: "",
@@ -19,11 +20,20 @@ const Signup = () => {
     password: "",
   });
 
+  /* ================= TNP STATE (ADDED) ================= */
+  const [tnpData, setTnpData] = useState({
+    name: "",
+    email: "",
+    institute: "",
+    institute_code: "",
+    password: "",
+  });
+
   const inputClass =
     "w-full border border-gray-300 rounded-xl px-4 py-3 text-black " +
     "placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500";
 
-  // ================= RESUME UPLOAD + PARSE =================
+  /* ================= RESUME PARSE ================= */
   const handleResumeUpload = async (file) => {
     if (!file) return;
 
@@ -51,59 +61,67 @@ const Signup = () => {
           ? data.skills.join(", ")
           : "",
       }));
-    } catch (err) {
+    } catch {
       alert("Resume parsing failed");
     } finally {
       setParsing(false);
     }
   };
 
-  const handleChange = (e) => {
+  const handleStudentChange = (e) => {
     setStudentData({ ...studentData, [e.target.name]: e.target.value });
   };
 
-  // ================= SIGNUP SUBMIT =================
+  const handleTnpChange = (e) => {
+    setTnpData({ ...tnpData, [e.target.name]: e.target.value });
+  };
+
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (role !== "student") {
-      alert("TnP signup backend later");
-      navigate("/login");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/student/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: studentData.name,
-          email: studentData.email,
-          branch: studentData.branch,
-          cgpa: studentData.cgpa,
-          skills: studentData.skills
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          password: studentData.password,
-        }),
-      });
+      /* ---------- STUDENT ---------- */
+      if (role === "student") {
+        const res = await fetch("http://127.0.0.1:8000/student/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: studentData.name,
+            email: studentData.email,
+            branch: studentData.branch,
+            cgpa: studentData.cgpa,
+            skills: studentData.skills
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+            password: studentData.password,
+          }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
+        if (data.error) return alert(data.error);
 
-      if (data.error) {
-        alert(data.error);
-        return;
+        alert("✅ Student account created");
+        navigate("/login");
       }
 
-      alert("✅ Account created successfully");
-      navigate("/login");
+      /* ---------- TNP (ADDED) ---------- */
+      if (role === "tnp") {
+        const res = await fetch("http://127.0.0.1:8000/tnp/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(tnpData),
+        });
 
-    } catch (err) {
+        const data = await res.json();
+        if (data.error) return alert(data.error);
+
+        alert("✅ TNP account created");
+        navigate("/login");
+      }
+    } catch {
       alert("Signup failed");
     } finally {
       setLoading(false);
@@ -142,9 +160,7 @@ const Signup = () => {
                 type="button"
                 onClick={() => setRole(r)}
                 className={`flex-1 py-2 rounded-lg font-semibold ${
-                  role === r
-                    ? "bg-cyan-500 text-white"
-                    : "text-gray-600"
+                  role === r ? "bg-cyan-500 text-white" : "text-gray-600"
                 }`}
               >
                 {r === "student" ? "Student" : "TnP"}
@@ -152,10 +168,9 @@ const Signup = () => {
             ))}
           </div>
 
-          {/* STUDENT SIGNUP */}
+          {/* ================= STUDENT FORM (UNCHANGED) ================= */}
           {role === "student" && (
             <form className="space-y-4" onSubmit={handleSubmit}>
-              {/* Resume */}
               <div className="border-2 border-dashed rounded-xl p-4 text-center">
                 <input
                   type="file"
@@ -174,18 +189,47 @@ const Signup = () => {
                 )}
               </div>
 
-              <input name="name" value={studentData.name} onChange={handleChange} placeholder="Full Name" className={inputClass} />
-              <input name="email" value={studentData.email} onChange={handleChange} placeholder="Email" className={inputClass} />
-              <input name="branch" value={studentData.branch} onChange={handleChange} placeholder="Branch" className={inputClass} />
-              <input name="cgpa" value={studentData.cgpa} onChange={handleChange} placeholder="CGPA" className={inputClass} />
-              <input name="skills" value={studentData.skills} onChange={handleChange} placeholder="Skills" className={inputClass} />
-              <input name="password" type="password" value={studentData.password} onChange={handleChange} placeholder="Password" className={inputClass} />
+              {["name","email","branch","cgpa","skills","password"].map((f) => (
+                <input
+                  key={f}
+                  name={f}
+                  type={f === "password" ? "password" : "text"}
+                  value={studentData[f]}
+                  onChange={handleStudentChange}
+                  placeholder={f.toUpperCase()}
+                  className={inputClass}
+                />
+              ))}
 
-              <button
-                disabled={loading}
-                className="w-full bg-cyan-500 py-3 rounded-xl font-bold text-white"
-              >
-                {loading ? "Creating Account..." : "Create Student Account"}
+              <button className="w-full bg-cyan-500 py-3 rounded-xl font-bold text-white">
+                {loading ? "Creating..." : "Create Student Account"}
+              </button>
+            </form>
+          )}
+
+          {/* ================= TNP FORM (ADDED) ================= */}
+          {role === "tnp" && (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {[
+                ["name","Name"],
+                ["email","Official Email"],
+                ["institute","Institute Name"],
+                ["institute_code","Institute Code"],
+                ["password","Password"],
+              ].map(([key,label]) => (
+                <input
+                  key={key}
+                  name={key}
+                  type={key === "password" ? "password" : "text"}
+                  value={tnpData[key]}
+                  onChange={handleTnpChange}
+                  placeholder={label}
+                  className={inputClass}
+                />
+              ))}
+
+              <button className="w-full bg-cyan-500 py-3 rounded-xl font-bold text-white">
+                {loading ? "Creating..." : "Create TNP Account"}
               </button>
             </form>
           )}

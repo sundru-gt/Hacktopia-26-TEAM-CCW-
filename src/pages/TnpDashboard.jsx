@@ -1,16 +1,48 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { X } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
 
 const TnpDashboard = () => {
   /* ================= STATES ================= */
   const [stats, setStats] = useState(null);
+  const COLORS = ["#22d3ee", "#1e293b"];
 
   const [students, setStudents] = useState([]);
   const [showStudents, setShowStudents] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [studentError, setStudentError] = useState("");
 
+  const [recruiters, setRecruiters] = useState([]);
+
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
+  const placementRatioData = [
+  { name: "Placed", value: 42 },
+  { name: "Not Placed", value: 58 },
+];
+
+const eligibilityData = [
+  { name: "Eligible", value: 68 },
+  { name: "Not Eligible", value: 32 },
+];
+
+const branchData = [
+  { branch: "CSE", placed: 22 },
+  { branch: "IT", placed: 15 },
+  { branch: "ECE", placed: 10 },
+];
+
 
   const [recruiter, setRecruiter] = useState({
     company_name: "",
@@ -37,27 +69,24 @@ const TnpDashboard = () => {
 
     try {
       const res = await fetch("http://127.0.0.1:8000/tnp/students");
-
-      if (!res.ok) throw new Error("API not found");
-
       const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setStudents(data);
-      } else {
-        setStudents([]);
-        setStudentError("Invalid data from server");
-      }
-
+      setStudents(Array.isArray(data) ? data : []);
       setShowStudents(true);
-    } catch (err) {
-      setStudents([]);
+    } catch {
       setStudentError("Failed to load students");
       setShowStudents(true);
     } finally {
       setLoadingStudents(false);
     }
   };
+
+  /* ================= FETCH RECRUITERS ================= */
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/tnp/recruiters")
+      .then((res) => res.json())
+      .then((data) => setRecruiters(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   /* ================= SAVE RECRUITER ================= */
   const saveRecruiter = async () => {
@@ -71,7 +100,7 @@ const TnpDashboard = () => {
         : null,
     };
 
-    const res = await fetch("http://127.0.0.1:8000/recruiter/add", {
+    const res = await fetch("http://127.0.0.1:8000/tnp/recruiter/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -81,15 +110,6 @@ const TnpDashboard = () => {
     alert(data.message || "Recruiter added");
 
     setShowRecruiterModal(false);
-    setRecruiter({
-      company_name: "",
-      role: "",
-      ctc: "",
-      hr_email: "",
-      eligibility_branch: "",
-      min_cgpa: "",
-      description: "",
-    });
   };
 
   return (
@@ -97,34 +117,25 @@ const TnpDashboard = () => {
 
       {/* ================= HEADER ================= */}
       <div className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-extrabold">
-              TnP Coordinator Dashboard
-            </h1>
-            <p className="text-gray-400 text-sm">
-              Centralized placement intelligence ·{" "}
-              <span className="text-cyan-400 font-semibold">CampusHire</span>
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <h1 className="text-3xl font-extrabold">
+            TnP Coordinator Dashboard
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Centralized placement intelligence ·{" "}
+            <span className="text-cyan-400 font-semibold">CampusHire</span>
+          </p>
         </div>
       </div>
 
-      {/* ================= MAIN ================= */}
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-12">
 
         {/* ================= STATS ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { title: "Total Students", value: stats?.total_students },
-            {
-              title: "Placement Ready",
-              value: `${stats?.placement_ready || 0}%`,
-            },
-            {
-              title: "Avg Mock Score",
-              value: `${stats?.avg_mock_score || 0}/100`,
-            },
+            { title: "Placement Ready", value: `${stats?.placement_ready || 0}%` },
+            { title: "Avg Mock Score", value: `${stats?.avg_mock_score || 0}/100` },
             { title: "Active Recruiters", value: stats?.active_recruiters },
           ].map((s, i) => (
             <motion.div
@@ -145,89 +156,129 @@ const TnpDashboard = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Students</h2>
 
-            {!showStudents && (
+            {!showStudents ? (
               <button
                 onClick={loadStudents}
                 className="px-4 py-2 bg-cyan-500 text-black rounded-lg font-semibold"
               >
                 View Students
               </button>
+            ) : (
+              <button
+                onClick={() => setShowStudents(false)}
+                className="flex items-center gap-2 text-gray-400 hover:text-white"
+              >
+                <X size={18} /> Close
+              </button>
             )}
           </div>
 
-          {loadingStudents && (
-            <p className="text-gray-400">Loading students...</p>
+          {showStudents && (
+            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2">
+              {students.map((s) => (
+                <div
+                  key={s._id}
+                  className="bg-black/40 border border-white/10 rounded-xl p-4"
+                >
+                  <p className="font-bold text-cyan-400">{s.name}</p>
+                  <p className="text-sm text-gray-400">{s.email}</p>
+                </div>
+              ))}
+            </div>
           )}
-
-          {studentError && (
-            <p className="text-red-400">{studentError}</p>
-          )}
-
-          {showStudents &&
-            Array.isArray(students) &&
-            students.length === 0 &&
-            !loadingStudents && (
-              <p className="text-gray-400">No students found</p>
-            )}
-
-          {showStudents &&
-            Array.isArray(students) &&
-            students.length > 0 && (
-              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2">
-                {students.map((s, i) => (
-                  <div
-                    key={s._id || i}
-                    className="bg-black/40 border border-white/10 rounded-xl p-4"
-                  >
-                    <p className="font-bold text-cyan-400">{s.name}</p>
-                    <p className="text-sm text-gray-400">{s.email}</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mt-4">
-                      <div>
-                        <span className="text-gray-400">Branch</span>
-                        <p className="font-semibold mt-1">{s.branch}</p>
-                      </div>
-
-                      <div>
-                        <span className="text-gray-400">CGPA</span>
-                        <p className="font-semibold mt-1">{s.cgpa}</p>
-                      </div>
-
-                      <div>
-                        <span className="text-gray-400">Skills</span>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {Array.isArray(s.skills) && s.skills.length > 0 ? (
-                            s.skills.map((sk, idx) => (
-                              <span
-                                key={idx}
-                                className="px-3 py-1 text-xs rounded-full bg-cyan-500/20 text-cyan-300"
-                              >
-                                {sk}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-gray-500 text-xs">
-                              No skills
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
         </div>
 
-        {/* ================= ADD RECRUITER BUTTON ================= */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex justify-end">
-          <button
-            onClick={() => setShowRecruiterModal(true)}
-            className="px-6 py-3 bg-cyan-500 text-black font-bold rounded-xl hover:bg-cyan-400"
+        {/* ================= RECRUITER ENGAGEMENT ================= */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Recruiter Engagement</h2>
+            <button
+              onClick={() => setShowRecruiterModal(true)}
+              className="px-4 py-2 bg-cyan-500 text-black rounded-lg font-semibold"
+            >
+              + Add Recruiter
+            </button>
+          </div>
+
+          {recruiters.length === 0 ? (
+            <p className="text-gray-400">No recruiters added yet</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recruiters.map((r) => (
+                <div
+                  key={r._id}
+                  className="bg-black/40 border border-white/10 rounded-xl p-4"
+                >
+                  <p className="font-bold text-cyan-400">{r.company_name}</p>
+                  <p className="text-sm text-gray-400">{r.role}</p>
+                  <p className="text-xs text-gray-500 mt-1">{r.ctc}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ================= PLACEMENT ANALYSIS ================= */}
+        {/* ================= PLACEMENT ANALYSIS ================= */}
+<div className="space-y-6">
+  <h2 className="text-xl font-bold">Placement Analysis</h2>
+
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    {/* ===== PIE CHART ===== */}
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 h-[280px]">
+      <p className="text-gray-400 text-sm mb-2">Placement Ratio</p>
+
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={placementRatioData}
+            dataKey="value"
+            nameKey="name"
+            innerRadius={50}
+            outerRadius={80}
+            paddingAngle={4}
           >
-            + Add Recruiter
-          </button>
-        </div>
+            {placementRatioData.map((_, i) => (
+              <Cell key={i} fill={COLORS[i % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* ===== ELIGIBILITY BAR ===== */}
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 h-[280px]">
+      <p className="text-gray-400 text-sm mb-2">Eligibility Breakdown</p>
+
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={eligibilityData}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="value" fill="#22d3ee" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* ===== BRANCH WISE ===== */}
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 h-[280px]">
+      <p className="text-gray-400 text-sm mb-2">Branch-wise Placement</p>
+
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={branchData}>
+          <XAxis dataKey="branch" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="placed" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+
+  </div>
+</div>
+
       </div>
 
       {/* ================= ADD RECRUITER MODAL ================= */}
@@ -242,38 +293,15 @@ const TnpDashboard = () => {
               Add Recruiter
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                ["Company Name", "company_name"],
-                ["Role", "role"],
-                ["CTC / Stipend", "ctc"],
-                ["HR Email", "hr_email"],
-                ["Eligible Branches", "eligibility_branch"],
-                ["Min CGPA", "min_cgpa"],
-              ].map(([label, key]) => (
-                <input
-                  key={key}
-                  placeholder={label}
-                  value={recruiter[key]}
-                  onChange={(e) =>
-                    setRecruiter({ ...recruiter, [key]: e.target.value })
-                  }
-                  className="p-3 rounded-xl bg-black/40 border border-white/10"
-                />
-              ))}
-            </div>
-
-            <textarea
-              rows="4"
-              placeholder="Job Description"
-              value={recruiter.description}
+            <input
+              placeholder="Company Name"
+              className="w-full mb-4 p-3 rounded-xl bg-black/40 border border-white/10"
               onChange={(e) =>
-                setRecruiter({ ...recruiter, description: e.target.value })
+                setRecruiter({ ...recruiter, company_name: e.target.value })
               }
-              className="w-full mt-4 p-4 rounded-xl bg-black/40 border border-white/10"
             />
 
-            <div className="flex justify-end gap-4 mt-6">
+            <div className="flex justify-end gap-4">
               <button
                 onClick={() => setShowRecruiterModal(false)}
                 className="px-6 py-2 border border-white/20 rounded-xl"

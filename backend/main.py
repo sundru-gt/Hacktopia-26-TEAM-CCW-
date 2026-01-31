@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes import student, tnp
 from routes.recruiter import router as recruiter_router
+from routes.tnp_auth import router as tnp_auth_router
 
 
 app = FastAPI()
@@ -17,6 +18,8 @@ app.add_middleware(
 app.include_router(recruiter_router)
 app.include_router(student.router)
 app.include_router(tnp.router)
+app.include_router(tnp_auth_router)
+
 
 @app.get("/")
 def root():
