@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 
 const Signup = () => {
   const [role, setRole] = useState("student");
-  const [resume, setResume] = useState(null);
   const [parsing, setParsing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -17,10 +16,11 @@ const Signup = () => {
     branch: "",
     cgpa: "",
     skills: "",
+    predicted_role: "", // 🔥 IMPORTANT
     password: "",
   });
 
-  /* ================= TNP STATE (ADDED) ================= */
+  /* ================= TNP STATE ================= */
   const [tnpData, setTnpData] = useState({
     name: "",
     email: "",
@@ -37,14 +37,13 @@ const Signup = () => {
   const handleResumeUpload = async (file) => {
     if (!file) return;
 
-    setResume(file);
     setParsing(true);
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/parse-resume", {
+      const res = await fetch("http://127.0.0.1:8000/student/parse-resume", {
         method: "POST",
         body: formData,
       });
@@ -60,8 +59,9 @@ const Signup = () => {
         skills: Array.isArray(data.skills)
           ? data.skills.join(", ")
           : "",
+        predicted_role: data.predicted_role || "General Software Role", // 🔥 STORE
       }));
-    } catch {
+    } catch (err) {
       alert("Resume parsing failed");
     } finally {
       setParsing(false);
@@ -88,40 +88,58 @@ const Signup = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: studentData.name,
-            email: studentData.email,
-            branch: studentData.branch,
-            cgpa: studentData.cgpa,
+            name: studentData.name || "NA",
+            email: studentData.email || "NA",
+            branch: studentData.branch || "NA",
+            cgpa: studentData.cgpa || "0.0",
             skills: studentData.skills
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
-            password: studentData.password,
+              ? studentData.skills
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : ["Not Provided"],
+            predicted_role:
+              studentData.predicted_role || "General Software Role", // 🔥 SEND
+            password: studentData.password || "password",
           }),
         });
 
         const data = await res.json();
-        if (data.error) return alert(data.error);
+        if (data.error) {
+          alert(data.error);
+          setLoading(false);
+          return;
+        }
 
         alert("✅ Student account created");
         navigate("/login");
       }
 
-      /* ---------- TNP (ADDED) ---------- */
+      /* ---------- TNP ---------- */
       if (role === "tnp") {
         const res = await fetch("http://127.0.0.1:8000/tnp/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(tnpData),
+          body: JSON.stringify({
+            name: tnpData.name || "NA",
+            email: tnpData.email || "NA",
+            institute: tnpData.institute || "NA",
+            institute_code: tnpData.institute_code || "NA",
+            password: tnpData.password || "password",
+          }),
         });
 
         const data = await res.json();
-        if (data.error) return alert(data.error);
+        if (data.error) {
+          alert(data.error);
+          setLoading(false);
+          return;
+        }
 
         alert("✅ TNP account created");
         navigate("/login");
       }
-    } catch {
+    } catch (err) {
       alert("Signup failed");
     } finally {
       setLoading(false);
@@ -136,21 +154,30 @@ const Signup = () => {
         transition={{ duration: 0.6 }}
         className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 rounded-3xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-2xl border border-white/10"
       >
-        {/* LEFT */}
-        <div className="hidden md:flex flex-col justify-between p-10 bg-gradient-to-br from-indigo-500/20 to-cyan-500/10">
+        {/* ================= LEFT ================= */}
+        <div className="hidden md:flex relative flex-col justify-between p-12 bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-indigo-500/20">
           <div>
             <h1 className="text-4xl font-extrabold text-white">
-              Join CampusHire
+              One Platform. <br />
+              <span className="text-cyan-300">Smarter Placements.</span>
             </h1>
-            <p className="mt-4 text-gray-300">
-              Resume-driven placement intelligence platform
+            <p className="mt-6 text-gray-200 text-lg">
+              AI-powered placement intelligence platform for students and
+              Training & Placement Cells.
             </p>
           </div>
+
+          <p className="text-xs text-gray-300">
+            Official TnP Platform <br />
+            IIIT Bhagalpur
+          </p>
         </div>
 
-        {/* RIGHT */}
+        {/* ================= RIGHT ================= */}
         <div className="p-10 bg-white/90">
-          <h2 className="text-3xl font-bold mb-6">Create Account</h2>
+          <h2 className="text-3xl font-bold text-black mb-6">
+            Create Account
+          </h2>
 
           {/* ROLE TOGGLE */}
           <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
@@ -168,10 +195,10 @@ const Signup = () => {
             ))}
           </div>
 
-          {/* ================= STUDENT FORM (UNCHANGED) ================= */}
+          {/* STUDENT FORM */}
           {role === "student" && (
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="border-2 border-dashed rounded-xl p-4 text-center">
+              <div className="border-2 border-dashed border-black rounded-xl p-4 text-center">
                 <input
                   type="file"
                   accept=".pdf"
@@ -179,7 +206,10 @@ const Signup = () => {
                   id="resume"
                   onChange={(e) => handleResumeUpload(e.target.files[0])}
                 />
-                <label htmlFor="resume" className="cursor-pointer text-cyan-600">
+                <label
+                  htmlFor="resume"
+                  className="cursor-pointer font-bold text-black"
+                >
                   Upload Resume (PDF)
                 </label>
                 {parsing && (
@@ -189,17 +219,29 @@ const Signup = () => {
                 )}
               </div>
 
-              {["name","email","branch","cgpa","skills","password"].map((f) => (
-                <input
-                  key={f}
-                  name={f}
-                  type={f === "password" ? "password" : "text"}
-                  value={studentData[f]}
-                  onChange={handleStudentChange}
-                  placeholder={f.toUpperCase()}
-                  className={inputClass}
-                />
-              ))}
+              {["name", "email", "branch", "cgpa", "skills", "password"].map(
+                (f) => (
+                  <input
+                    key={f}
+                    name={f}
+                    type={f === "password" ? "password" : "text"}
+                    value={studentData[f]}
+                    onChange={handleStudentChange}
+                    placeholder={f.toUpperCase()}
+                    className={inputClass}
+                  />
+                )
+              )}
+
+              {/* 🔥 SHOW ROLE */}
+              {studentData.predicted_role && (
+                <p className="text-sm text-gray-700">
+                  Predicted Role:{" "}
+                  <span className="font-bold text-cyan-600">
+                    {studentData.predicted_role}
+                  </span>
+                </p>
+              )}
 
               <button className="w-full bg-cyan-500 py-3 rounded-xl font-bold text-white">
                 {loading ? "Creating..." : "Create Student Account"}
@@ -207,16 +249,16 @@ const Signup = () => {
             </form>
           )}
 
-          {/* ================= TNP FORM (ADDED) ================= */}
+          {/* TNP FORM */}
           {role === "tnp" && (
             <form className="space-y-4" onSubmit={handleSubmit}>
               {[
-                ["name","Name"],
-                ["email","Official Email"],
-                ["institute","Institute Name"],
-                ["institute_code","Institute Code"],
-                ["password","Password"],
-              ].map(([key,label]) => (
+                ["name", "Name"],
+                ["email", "Official Email"],
+                ["institute", "Institute Name"],
+                ["institute_code", "Institute Code"],
+                ["password", "Password"],
+              ].map(([key, label]) => (
                 <input
                   key={key}
                   name={key}
@@ -234,9 +276,9 @@ const Signup = () => {
             </form>
           )}
 
-          <p className="text-center mt-6 text-sm">
+          <p className="text-center mt-6 text-sm text-black">
             Already have an account?{" "}
-            <Link to="/login" className="text-cyan-600 font-semibold">
+            <Link to="/login" className="font-bold underline">
               Login
             </Link>
           </p>

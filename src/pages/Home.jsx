@@ -1,6 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet";
 import HeroBanner from '../components/Hero'
+import About from "./About";
 
 
 const Home = () => {
@@ -18,7 +19,7 @@ const Home = () => {
 
 
       <HeroBanner />
-      
+      <About/>
       
        
 

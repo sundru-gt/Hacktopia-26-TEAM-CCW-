@@ -3,7 +3,7 @@ import { FiMenu, FiX } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import bg from "../assets/hero.jpeg";
-import logo from "../assets/logo.jpg";
+import logo from "../assets/logo1.png";
 
 const Hero = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,7 +12,7 @@ const Hero = () => {
     { name: "Home", link: "/" },
     { name: "Opportunities", link: "/opportunities" },
     { name: "Mock Interview", link: "/mock-interview" },
-    { name: "TnP Dashboard", link: "/tnp-dashboard" },
+    { name: "TnP Coordinators", link: "/tnp" },
     { name: "About", link: "/about" },
   ];
 
@@ -144,21 +144,7 @@ const Hero = () => {
             and enable data-driven placement planning for Training & Placement Cells.
           </p>
 
-          {/* Stats */}
-          <div className="mt-8 flex flex-wrap justify-center gap-6 text-white">
-            <div className="bg-white/10 px-6 py-4 rounded-xl">
-              <p className="text-3xl font-bold text-cyan-400">60%</p>
-              <p className="text-sm">Coordinator Time Saved</p>
-            </div>
-            <div className="bg-white/10 px-6 py-4 rounded-xl">
-              <p className="text-3xl font-bold text-cyan-400">AI</p>
-              <p className="text-sm">Resume-Aware Interviews</p>
-            </div>
-            <div className="bg-white/10 px-6 py-4 rounded-xl">
-              <p className="text-3xl font-bold text-cyan-400">Smart</p>
-              <p className="text-sm">Opportunity Matching</p>
-            </div>
-          </div>
+         
 
           {/* CTA */}
           <div className="mt-10 flex flex-wrap justify-center gap-6">
